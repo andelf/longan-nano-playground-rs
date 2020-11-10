@@ -58,9 +58,17 @@ write!(buf, "Val: 0x{:08x}", debug_val);
 
 ## Steps for Bad Apple
 
+- Prepare an SD card, format it to FAT32(FAT16)
+  - I use an outdated SD card, 4GB, Class4
 - Download a Bad Apple video
+  - `youtube-dl` might help
 - Convert video file to image sequences (scale to LCD screen resolution)
-- Convert images to a `Rgb565` ImageRaw file
+  - Use `ffmpeg`
+- Convert images to a `Rgb565` ImageRaw file, save it to the root directory of SD card
+  - I wrote a small python script using PIL(Pillow)
+  - WARN: must use a DOS style 8.3 filename
+- Upload `bad_apple.rs` firmware to the board
+- enjoy!
 
 ```sh
 # Download video
@@ -73,7 +81,7 @@ ffmpeg -i BadApple.mp4
 # ....
 
 # Now you know it's a 960x720 resolution, 30 fps.
-# To scale it to fit Longan Nano's 160x80 screen, you will need to scale it to 106x80.
+# To fit a Longan Nano's 160x80 screen, you will need to scale it to 106x80.
 
 # NOTE: Lower fps might help.
 
@@ -84,4 +92,4 @@ ffmpeg -i BadApple.mp4 -vf scale=106:80,fps=24 'out/%04d.png'
 python3 scripts/convert.py
 ```
 
-Then copy the `badapple.raw` to your SD card.
+Then copy the `badapple.raw` to your SD card. Reboot with new firmware. :)

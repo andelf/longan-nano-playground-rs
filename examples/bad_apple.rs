@@ -149,6 +149,7 @@ fn main() -> ! {
             }
         };
         // read sample
+        /*
         let mut fp =
             match cntlr.open_file_in_dir(&mut vol, &dir, "sample.raw", sdmmc::Mode::ReadOnly) {
                 Ok(fp) => fp,
@@ -168,6 +169,7 @@ fn main() -> ! {
         let _ = writeln!(buf, "bytes: {:02x}{:02x}", img_buf[0], img_buf[1]);
 
         drop(fp);
+        */
         // Must use DOS 8.3 name
         let mut fp =
             match cntlr.open_file_in_dir(&mut vol, &dir, "badapple.raw", sdmmc::Mode::ReadOnly) {
@@ -190,11 +192,12 @@ fn main() -> ! {
                 let _ = writeln!(buf, "Done!");
                 break;
             }
+            let _ = fp.seek_from_current(106 * 80 * 2); // skip 1 frame
 
             let raw_image: ImageRaw<Rgb565> = ImageRaw::new(&img_buf[..], 106, 80);
             let image: Image<_, Rgb565> = Image::new(&raw_image, Point::new(26, 0));
             image.draw(&mut lcd).unwrap();
-            // delay.delay_ms(1_u16); // 1_000 / 24
+            delay.delay_ms(18_u16); // 1_000 / 24
         }
 
         break;

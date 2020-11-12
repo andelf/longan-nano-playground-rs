@@ -14,6 +14,7 @@ use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::Rectangle;
 use embedded_graphics::{primitive_style, text_style};
 // gd32vf103_pac
+use gd32vf103xx_hal::delay;
 use gd32vf103xx_hal::pac;
 use gd32vf103xx_hal::prelude::*;
 use longan_nano::{lcd, lcd_pins};
@@ -60,15 +61,18 @@ fn main() -> ! {
     let mut buf = [0u8; 20 * 5];
     let mut buf = ByteMutWriter::new(&mut buf[..]);
 
+    // delay using mcycle
+    let mut delay = delay::McycleDelay::new(&rcu.clocks);
+
     // Create a text at position (20, 30) and draw it using style defined above
     Text::new(" Hello from Rust! ", Point::new(0, 0))
         .into_styled(style)
         .draw(&mut lcd)
         .unwrap();
 
-    unsafe {
-        asm!("nop");
-    }
+
+    delay.delay_ms(2_000_u16);
+
     buf.clear();
     let _ = writeln!(buf, "misa:      {:08x}", misa());
     let _ = writeln!(buf, "mvendorid: {:08x}", mvendorid());

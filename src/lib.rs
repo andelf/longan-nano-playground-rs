@@ -1,5 +1,12 @@
 #![no_std]
 
+
+pub use gd32vf103xx_hal as hal;
+pub use hal::pac as pac;
+
+pub mod adc;
+
+
 use core::fmt;
 use core::str;
 

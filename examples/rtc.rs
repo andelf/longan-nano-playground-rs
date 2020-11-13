@@ -7,7 +7,7 @@ use panic_halt as _;
 use core::fmt::Write;
 use longan_nano_playground::ByteMutWriter;
 
-use embedded_graphics::fonts::{Font6x12, Font6x8, Font8x16, Text};
+use embedded_graphics::fonts::{Font8x16, Text};
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::Rectangle;
@@ -54,12 +54,6 @@ fn main() -> ! {
         font = Font8x16, // Font6x8,
         text_color = Rgb565::WHITE,
         background_color = Rgb565::BLACK
-    );
-
-    let style2 = text_style!(
-        font = Font8x16, // Font6x8,
-        text_color = Rgb565::BLACK,
-        background_color = Rgb565::YELLOW
     );
 
     // let max_duty = pwm.try_get_max_duty().unwrap();
@@ -139,7 +133,7 @@ fn main() -> ! {
 
     let mut pmu = dp.PMU;
     let mut bak_dom = dp.BKP.configure(&mut rcu, &mut pmu);
-    let mut rtc = Rtc::rtc(dp.RTC, &mut bak_dom);
+    let rtc = Rtc::rtc(dp.RTC, &mut bak_dom);
 
     loop {
         let _ = block!(timer.wait());
@@ -164,42 +158,5 @@ fn main() -> ! {
             .into_styled(style)
             .draw(&mut lcd)
             .unwrap();
-    }
-
-    /*
-    loop {
-        if timer.wait().is_ok() {
-            break;
-        }
-    }
-    */
-    // timer.start(5.hz());
-
-    // Clear screen
-    Rectangle::new(Point::new(0, 0), Point::new(width - 1, height - 1))
-        .into_styled(primitive_style!(fill_color = Rgb565::YELLOW))
-        .draw(&mut lcd)
-        .unwrap();
-
-    let mut i = 0;
-    loop {
-        // unsafe {
-        //     asm!("nop");
-        // }
-        {
-            buf.clear();
-            write!(&mut buf, "Uptime: {}", rtc.current_time()).unwrap();
-        }
-
-        Text::new(buf.as_str(), Point::new(0, i % 80))
-            .into_styled(style2)
-            .draw(&mut lcd)
-            .unwrap();
-        // timer.start(10.hz());
-        //      for _ in 0..5 {
-        let _ = block!(timer.wait());
-        //    }
-
-        i = i.wrapping_add(1);
     }
 }

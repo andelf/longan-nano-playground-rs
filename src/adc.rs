@@ -514,15 +514,15 @@ impl Adc<ADC0, Disabled> {
             // Inserted channels are converted starting from (4 - IL[1:0] - 1),
             // if IL[1:0] length is less than 4.
             match rank {
-                0 => self.rb.isq.modify(|_, w| w.isq0().bits(channel)),
-                1 => self.rb.isq.modify(|_, w| w.isq1().bits(channel)),
-                2 => self.rb.isq.modify(|_, w| w.isq2().bits(channel)),
-                3 => self.rb.isq.modify(|_, w| w.isq3().bits(channel)),
+                0 => self.rb.isq.modify(|_, w| w.isq3().bits(channel)),
+                1 => self.rb.isq.modify(|_, w| w.isq2().bits(channel)),
+                2 => self.rb.isq.modify(|_, w| w.isq1().bits(channel)),
+                3 => self.rb.isq.modify(|_, w| w.isq0().bits(channel)),
                 _ => panic!("invalid rank"),
             }
 
             match channel {
-                10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 => {
+                10..=17 => {
                     let mask = !(0x111 << (3 * (channel - 10)));
                     self.rb.sampt0.modify(|r, w| {
                         let cleared = r.bits() & mask;
@@ -530,7 +530,7 @@ impl Adc<ADC0, Disabled> {
                         w.bits(cleared | masked)
                     });
                 }
-                9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 => {
+                0..=9 => {
                     let mask = !(0x111 << (3 * channel));
                     self.rb.sampt1.modify(|r, w| {
                         let cleared = r.bits() & mask;
@@ -570,8 +570,12 @@ impl Adc<ADC0, Enabled> {
     }
 
     pub fn enable_software_trigger(&mut self) {
-        // TODO:INSERTED
-        self.rb.ctl1.modify(|_, w| w.swicst().set_bit());
+        if self.config.regular_channel.is_some() {
+            self.rb.ctl1.modify(|_, w| w.swrcst().set_bit());
+        }
+        if self.config.inserted_channel.is_some() {
+            self.rb.ctl1.modify(|_, w| w.swicst().set_bit());
+        }
     }
 
     pub fn wait_for_conversion(&self) {
@@ -606,6 +610,10 @@ impl Adc<ADC0, Enabled> {
         self.rb.ctl1.modify(|_, w| w.clb().set_bit());
         while self.rb.ctl1.read().clb().bit_is_set() {}
         sprintln!("cali done!");
+    }
+
+    pub fn read_rdata(&self) -> u16 {
+        self.rb.rdata.read().rdata().bits()
     }
 
     pub fn read0(&self) -> u16 {

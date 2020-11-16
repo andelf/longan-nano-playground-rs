@@ -142,13 +142,15 @@ fn main() -> ! {
 
         adc.enable_software_trigger();
         adc.wait_for_conversion();
+        adc.clear_end_of_conversion_flag();
 
-        delay.delay_ms(5);
+        //    delay.delay_ms(5);
 
         // {(V25 – Vtemperature) / Avg_Slope} + 25
-        let raw_temp = adc.read0();
+        // read???
+        let raw_temp = adc.read3();
         let temperature = (1.45 - (raw_temp as f32 * 3.3 / 4096.0)) * 1000.0 / 4.1 + 25.0;
-        //let vref_value = adc.read1() as f32 * 3.3 / 4096.0;
+        let vref_value = adc.read2() as f32 * 3.3 / 4096.0;
         //let a0_val = adc.read2();
 
         /*
@@ -159,16 +161,12 @@ fn main() -> ! {
         buf.clear();
 
         writeln!(buf, "temp: {:.2}C", temperature).unwrap();
-        writeln!(buf, "raw0:  0x{:04x}", adc.read0()).unwrap();
-        writeln!(buf, "raw1:  0x{:04x}", adc.read1()).unwrap();
-        writeln!(buf, "raw2:  0x{:04x}", adc.read2()).unwrap();
-        writeln!(buf, "raw3:  0x{:04x}", adc.read3()).unwrap();
+        writeln!(buf, "Vref: {:.4}V", vref_value).unwrap();
+        writeln!(buf, "data0: {}", adc.read3()).unwrap();
+        writeln!(buf, "data1: {}", adc.read2()).unwrap();
+        writeln!(buf, "data2: {}", adc.read1()).unwrap();
+        // writeln!(buf, "data3: {}", adc.read0()).unwrap();
 
-
-
-        adc.clear_end_of_conversion_flag();
-
-        //writeln!(buf, "Vref: {:.4}V", , vref_value).unwrap();
         //write!(buf, "a0: 0x{:04x}", a0_val).unwrap();
         Text::new(buf.as_str(), Point::new(0, 0))
             .into_styled(style)

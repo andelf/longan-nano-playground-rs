@@ -16,7 +16,7 @@ use embedded_graphics::{primitive_style, text_style};
 use gd32vf103xx_hal::pac;
 use gd32vf103xx_hal::prelude::*;
 use gd32vf103xx_hal::timer;
-use longan_nano::{lcd, lcd_pins};
+use longan_nano_playground::{lcd, lcd_pins};
 use riscv_rt::entry;
 #[macro_use(block)]
 extern crate nb;
@@ -104,7 +104,7 @@ fn main() -> ! {
     // Clear screen
     cls!();
     buf.clear();
-    write!(&mut buf, "led blinky");
+    write!(&mut buf, "led blinky").unwrap();
     Text::new(buf.as_str(), Point::new(0, 0))
         .into_styled(style)
         .draw(&mut lcd)

@@ -5,7 +5,6 @@
 use panic_halt as _;
 
 use core::fmt::Write;
-use longan_nano_playground::ByteMutWriter;
 
 // for LCD
 use embedded_graphics::fonts::{Font8x16, Text};
@@ -17,7 +16,8 @@ use embedded_graphics::{primitive_style, text_style};
 use gd32vf103xx_hal::delay;
 use gd32vf103xx_hal::pac;
 use gd32vf103xx_hal::prelude::*;
-use longan_nano::{lcd, lcd_pins};
+use longan_nano_playground::ByteMutWriter;
+use longan_nano_playground::{lcd, lcd_pins};
 use riscv_rt::entry;
 
 #[entry]
@@ -69,7 +69,6 @@ fn main() -> ! {
         .into_styled(style)
         .draw(&mut lcd)
         .unwrap();
-
 
     delay.delay_ms(2_000_u16);
 

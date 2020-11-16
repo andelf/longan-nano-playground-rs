@@ -5,7 +5,6 @@
 use panic_halt as _;
 
 use core::fmt::Write;
-use longan_nano_playground::ByteMutWriter;
 
 use embedded_graphics::fonts::{Font8x16, Text};
 use embedded_graphics::pixelcolor::Rgb565;
@@ -16,8 +15,12 @@ use embedded_graphics::{primitive_style, text_style};
 use gd32vf103xx_hal::pac;
 use gd32vf103xx_hal::prelude::*;
 use gd32vf103xx_hal::timer;
-use longan_nano::sprintln;
-use longan_nano::{lcd, lcd_pins};
+// use longan_nano::sprintln;
+// use longan_nano::{lcd, lcd_pins};
+use longan_nano_playground::ByteMutWriter;
+use longan_nano_playground::{lcd, lcd_pins, sprintln};
+use longan_nano_playground::stdout;
+
 use riscv_rt::entry;
 #[macro_use(block)]
 extern crate nb;
@@ -43,7 +46,7 @@ fn main() -> ! {
     let gpiob = dp.GPIOB.split(&mut rcu);
 
     // stdout via uart0. 115200 8N1
-    longan_nano::stdout::configure(
+    stdout::configure(
         dp.USART0,
         gpioa.pa9,
         gpioa.pa10,
@@ -115,7 +118,7 @@ fn main() -> ! {
     // Clear screen
     cls!();
     buf.clear();
-    write!(&mut buf, "led blinky");
+    write!(&mut buf, "led blinky").unwrap();
     Text::new(buf.as_str(), Point::new(0, 0))
         .into_styled(style)
         .draw(&mut lcd)

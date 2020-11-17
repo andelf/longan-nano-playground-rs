@@ -72,7 +72,7 @@ fn main() -> ! {
     adc.configure_inserted_channel(0, &temp, adc::config::SampleTime::Point_239_5);
     adc.configure_inserted_channel(1, &vrefint, adc::config::SampleTime::Point_239_5);
     adc.configure_inserted_channel(2, &a0, adc::config::SampleTime::Point_239_5);
-    adc.configure_inserted_channel(3, &b0, adc::config::SampleTime::Point_239_5);
+    //adc.configure_inserted_channel(3, &b0, adc::config::SampleTime::Point_239_5);
 
     let mut adc = adc.enable();
     adc.calibrate();
@@ -146,10 +146,9 @@ fn main() -> ! {
         //    delay.delay_ms(5);
 
         // {(V25 – Vtemperature) / Avg_Slope} + 25
-        // read???
-        let raw_temp = adc.read_idata3();
+        let raw_temp = adc.read_idata2();
         let temperature = (1.45 - (raw_temp as f32 * 3.3 / 4096.0)) * 1000.0 / 4.1 + 25.0;
-        let vref_value = adc.read_idata2() as f32 * 3.3 / 4096.0;
+        let vref_value = adc.read_idata1() as f32 * 3.3 / 4096.0;
         //let a0_val = adc.read2();
 
         /*

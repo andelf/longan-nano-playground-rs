@@ -34,17 +34,26 @@ macro_rules! adc_pins {
 #[allow(non_camel_case_types)]
 pub mod config {
 
+    /// The number of cycles to sample a given channel for
     #[derive(Clone, Copy, Debug, PartialEq)]
     #[allow(non_camel_case_types)]
     #[repr(u8)]
     pub enum SampleTime {
+        /// 1.5 cycles
         Point_1_5 = 0,
+        /// 7.5 cycles
         Point_7_5,
+        /// 13.5 cycles
         Point_13_5,
+        /// 28.5 cycles
         Point_28_5,
+        /// 41.5 cycles
         Point_41_5,
+        /// 55.5 cycles
         Point_55_5,
+        /// 71.5 cycles
         Point_71_5,
+        /// 239.5 cycles
         Point_239_5,
     }
 
@@ -86,29 +95,45 @@ pub mod config {
         Six = 3,
     }
 
-    /// Inserted group trigger source.
+    /// Regular group trigger source.
     #[derive(Debug, Clone, Copy)]
     pub enum RegularExternalTrigger {
+        /// TIMER0 CH0 event select
         Timer0_Ch0 = 0b000,
+        /// TIMER0 CH1 event select
         Timer0_Ch1 = 0b001,
+        /// TIMER0 CH2 event select
         Timer0_Ch2 = 0b010,
+        /// TIMER1 CH1 event select
         Timer1_Ch1 = 0b011,
+        /// TIMER2 TRGO event select
         Timer2_Trgo = 0b100,
+        /// TIMER3 CH3 event select
         Timer3_Ch3 = 0b101,
+        /// external interrupt line 11
         Exti11 = 0b110,
+        /// software trigger
         None = 0b111,
     }
 
     /// Inserted group trigger source.
     #[derive(Debug, Clone, Copy)]
     pub enum InsertedExternalTrigger {
+        /// TIMER0 TRGO event select
         Timer2_Trgo = 0b000,
+        /// TIMER0 CH3 event select
         Timer0_Ch3 = 0b001,
+        /// TIMER1 TRGO event select
         Timer1_Trgo = 0b010,
+        /// TIMER1 CH0 event select
         Timer1_Ch0 = 0b011,
+        /// TIMER2 CH3 event select
         Timer2_Ch3 = 0b100,
+        /// TIMER3 TRGO event select
         Timer3_Trgo = 0b101,
+        /// external interrupt line 15
         Exti15 = 0b110,
+        /// software trigger
         None = 0b111,
     }
 
@@ -164,13 +189,14 @@ pub mod config {
         }
     }
 
+    /// Config for regular channel group
     #[derive(Debug, Clone, Copy)]
     pub struct RegularChannelGroupConfig {
         pub(crate) external_trigger: RegularExternalTrigger,
     }
 
     impl RegularChannelGroupConfig {
-        // change the external_trigger field
+        /// change the external_trigger field
         pub fn external_trigger(mut self, external_trigger: RegularExternalTrigger) -> Self {
             self.external_trigger = external_trigger;
             self
@@ -202,6 +228,7 @@ pub mod config {
         }
     }
 
+    /// Config for inserted channel group
     #[derive(Debug, Clone, Copy)]
     pub struct InsertedChannelGroupConfig {
         pub(crate) external_trigger: InsertedExternalTrigger,
@@ -209,12 +236,12 @@ pub mod config {
     }
 
     impl InsertedChannelGroupConfig {
-        // change the external_trigger field
+        /// change the external_trigger field
         pub fn external_trigger(mut self, external_trigger: InsertedExternalTrigger) -> Self {
             self.external_trigger = external_trigger;
             self
         }
-        // change the insertion field
+        /// change the insertion field
         pub fn insertion(mut self, insertion: Insertion) -> Self {
             self.insertion = insertion;
             self
@@ -312,10 +339,14 @@ pub struct Enabled;
 /// Disabled ADC (type state)
 pub struct Disabled;
 
+/// Type state trait for a enabled ADC channel
 pub trait ED {}
+/// Enabled ADC (type state)
 impl ED for Enabled {}
+/// Disabled ADC (type state)
 impl ED for Disabled {}
 
+/// Wrapper for an analog pin
 pub struct AnalogPin<PIN>(pub PIN);
 
 adc_pins!(ADC0,
@@ -337,7 +368,7 @@ adc_pins!(ADC0,
     PC5<Analog> => 15,
 );
 
-/// ADC configuration
+/// Analog to Digital Converter
 pub struct Adc<ADC, ED> {
     rb: ADC,
     config: config::AdcConfig,
@@ -345,6 +376,7 @@ pub struct Adc<ADC, ED> {
 }
 
 impl Adc<ADC0, Disabled> {
+    /// Enables the ADC clock, resets the peripheral
     pub fn adc0(adc: ADC0, _rcu: &mut Rcu) -> Self {
         let mut adc = Self::default_from_rb(adc);
 
@@ -497,6 +529,8 @@ impl Adc<ADC0, Disabled> {
     }
 
     /// configure ADC regular channel
+    ///
+    /// 12 - Used in single mode
     pub fn configure_regular_channel<CHANNEL>(
         &mut self,
         rank: u8,
@@ -537,6 +571,11 @@ impl Adc<ADC0, Disabled> {
     }
 
     /// configure ADC inserted channel
+    ///
+    /// - 0 -> ISQ3
+    /// - 1 -> ISQ2
+    /// - 2 -> ISQ1
+    /// - 3 -> ISQ0
     pub fn configure_inserted_channel<CHANNEL>(
         &mut self,
         rank: u8,
@@ -589,7 +628,6 @@ impl Adc<ADC0, Disabled> {
         sprintln!("adc0 enabled");
         Adc {
             rb: self.rb,
-            // sample_time: self.sample_time,
             config: self.config,
             _enabled: PhantomData,
         }
@@ -597,10 +635,17 @@ impl Adc<ADC0, Disabled> {
 }
 
 impl Adc<ADC0, Enabled> {
-    pub fn power_down(&mut self) {
+    /// Disable the ADC
+    pub fn power_down(self) -> Adc<ADC0, Disabled> {
         self.rb.ctl1.modify(|_, w| w.adcon().clear_bit());
+        Adc {
+            rb: self.rb,
+            config: self.config,
+            _enabled: PhantomData,
+        }
     }
 
+    /// Enable software trigger for regular channel and inserted channel (if any)
     pub fn enable_software_trigger(&mut self) {
         if self.config.regular_channel.is_some() {
             self.rb.ctl1.modify(|_, w| w.swrcst().set_bit());
@@ -610,6 +655,7 @@ impl Adc<ADC0, Enabled> {
         }
     }
 
+    /// Wait for the conversion sequence to finished
     pub fn wait_for_conversion(&self) {
         while self.rb.stat.read().eoc().bit_is_clear() {}
 
@@ -636,28 +682,30 @@ impl Adc<ADC0, Enabled> {
     }
 
     /// Calibrates the ADC in single channel mode
-    ///
-    /// Note: The ADC must be powered
     pub fn calibrate(&mut self) {
         self.reset_calibrate();
         self.rb.ctl1.modify(|_, w| w.clb().set_bit());
         while self.rb.ctl1.read().clb().bit_is_set() {}
-        sprintln!("cali done!");
     }
 
+    /// Read data from regular channel
     pub fn read_rdata(&self) -> u16 {
         self.rb.rdata.read().rdata().bits()
     }
 
+    /// Read data from inserted channel 0
     pub fn read_idata0(&self) -> u16 {
         self.rb.idata0.read().idatan().bits()
     }
+    /// Read data from inserted channel 1
     pub fn read_idata1(&self) -> u16 {
         self.rb.idata1.read().idatan().bits()
     }
+    /// Read data from inserted channel 2
     pub fn read_idata2(&self) -> u16 {
         self.rb.idata2.read().idatan().bits()
     }
+    /// Read data from inserted channel 3
     pub fn read_idata3(&self) -> u16 {
         self.rb.idata3.read().idatan().bits()
     }
@@ -669,6 +717,8 @@ pub struct Temperature<ED> {
 }
 
 impl Temperature<Disabled> {
+    /// Internal temperature sensor
+    // TODO: avoid creating multiple instences
     pub fn new() -> Self {
         Self {
             _marker: PhantomData,
@@ -677,7 +727,7 @@ impl Temperature<Disabled> {
 }
 
 impl Temperature<Disabled> {
-    // To enable Temperatuer, Vrefint is required.
+    /// Enable temperature sensor channel
     pub fn enable(&mut self, adc: &mut Adc<ADC0, Disabled>) -> Temperature<Enabled> {
         adc.rb.ctl1.modify(|_, w| w.tsvren().set_bit());
         Temperature {
@@ -701,6 +751,7 @@ pub struct Vrefint<ED> {
 }
 
 impl Vrefint<Disabled> {
+    /// New Vref internal signal
     pub fn new() -> Self {
         Self {
             _marker: PhantomData,
@@ -709,6 +760,7 @@ impl Vrefint<Disabled> {
 }
 
 impl Vrefint<Disabled> {
+    /// Enable Vrefint sensor channel
     pub fn enable(self, adc: &mut Adc<ADC0, Disabled>) -> Vrefint<Enabled> {
         adc.rb.ctl1.modify(|_, w| w.tsvren().set_bit());
         Vrefint {
@@ -734,7 +786,7 @@ pub enum SyncMode {
     DualRegulalParallelInsertedParallel,
     ///  ADC0 and ADC1 work in combined regular parallel + trigger rotation mode
     DualRegulalParallelInsertedRotation,
-    // ADC0 and ADC1 work in combined inserted parallel + follow-up fast mode
+    /// ADC0 and ADC1 work in combined inserted parallel + follow-up fast mode
     DualInsertedParallelRegulalFollowupFast,
     /// ADC0 and ADC1 work in combined inserted parallel + follow-up slow mode
     DualInsertedParallelRegulalFollowupSlow,

@@ -40,15 +40,23 @@ type CsPin = PB2<Output<PushPull>>;
 type DcPin = PB0<Output<PushPull>>;
 type RstPin = PB1<Output<PushPull>>;
 type SpiType = Spi<SPI0, (SckPin, MisoPin, MosiPin)>;
+
+/// On board LCD 160x80
 pub type Lcd = ST7735<SpiType, DcPin, RstPin>;
 
 /// Pins consumed by LCD driver
 pub struct LcdPins {
+    /// SPI0 miso, unused
     pub miso: MisoPin,
+    /// SPI0 mosi
     pub mosi: MosiPin,
+    /// SPI0 sck
     pub sck: SckPin,
+    /// CS for ST7735
     pub cs: CsPin,
+    /// DC for ST7735
     pub dc: DcPin,
+    /// RST for ST7735
     pub rst: RstPin,
 }
 

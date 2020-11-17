@@ -34,8 +34,6 @@ macro_rules! adc_pins {
 #[allow(non_camel_case_types)]
 pub mod config {
 
-    // Sequence
-
     #[derive(Clone, Copy, Debug, PartialEq)]
     #[allow(non_camel_case_types)]
     #[repr(u8)]
@@ -318,19 +316,7 @@ pub trait ED {}
 impl ED for Enabled {}
 impl ED for Disabled {}
 
-/*
-pub trait Channel<ADC> {
-    type ID;
-
-    fn channel(&self) -> Self::ID;
-}
-*/
 pub struct AnalogPin<PIN>(pub PIN);
-
-pub struct InsertedChannel<'a, PIN> {
-    rank: u8,
-    pin: &'a AnalogPin<PIN>,
-}
 
 adc_pins!(ADC0,
     PA0<Analog> => 0,
@@ -355,7 +341,6 @@ adc_pins!(ADC0,
 pub struct Adc<ADC, ED> {
     rb: ADC,
     config: config::AdcConfig,
-    // rcu: &mut Rcu,
     _enabled: PhantomData<ED>,
 }
 
@@ -426,6 +411,16 @@ impl Adc<ADC0, Disabled> {
         self.config.align = align;
     }
 
+    /// Enables and disables scan mode
+    pub fn set_scan(&mut self, scan: config::Scan) {
+        self.config.scan = scan;
+    }
+
+    /// Enables and disables continuous mode
+    pub fn set_continuous(&mut self, continuous: config::Continuous) {
+        self.config.continuous = continuous;
+    }
+
     fn configure(&mut self) {
         let config = &self.config;
         // ADC scan function enable
@@ -478,21 +473,74 @@ impl Adc<ADC0, Disabled> {
         self.config = config;
     }
 
+    /// ADC sampling time config
+    fn set_channel_sample_time(&mut self, channel: u8, sample_time: config::SampleTime) {
+        match channel {
+            0..=9 => unsafe {
+                let mask = !(0b111 << (3 * channel));
+                self.rb.sampt1.modify(|r, w| {
+                    let cleared = r.bits() & mask;
+                    let masked = (sample_time as u8 as u32) << (3 * channel);
+                    w.bits(cleared | masked)
+                });
+            },
+            10..=17 => unsafe {
+                let mask = !(0b111 << (3 * (channel - 10)));
+                self.rb.sampt0.modify(|r, w| {
+                    let cleared = r.bits() & mask;
+                    let masked = (sample_time as u8 as u32) << (3 * (channel - 10));
+                    w.bits(cleared | masked)
+                });
+            },
+            _ => unreachable!("invalid channel"),
+        }
+    }
+
+    /// configure ADC regular channel
     pub fn configure_regular_channel<CHANNEL>(
         &mut self,
+        rank: u8,
         _channel: &CHANNEL,
-        _sample_time: config::SampleTime,
+        sample_time: config::SampleTime,
     ) where
         CHANNEL: Channel<ADC0, ID = u8>,
     {
-        unimplemented!()
+        let channel = CHANNEL::channel();
+
+        // ADC regular sequence config
+        match rank {
+            0..=5 => unsafe {
+                let mask = !(0b11111 << (5 * rank));
+                self.rb.rsq2.modify(|r, w| {
+                    let cleared = r.bits() & mask;
+                    w.bits(cleared | ((rank as u32) << (5 * rank)))
+                })
+            },
+            6..=11 => unsafe {
+                let mask = !(0b11111 << (5 * (rank - 6)));
+                self.rb.rsq1.modify(|r, w| {
+                    let cleared = r.bits() & mask;
+                    w.bits(cleared | ((rank as u32) << (5 * (rank - 6))))
+                })
+            },
+            12..=15 => unsafe {
+                let mask = !(0b11111 << (5 * (rank - 12)));
+                self.rb.rsq0.modify(|r, w| {
+                    let cleared = r.bits() & mask;
+                    w.bits(cleared | ((rank as u32) << (5 * (rank - 12))))
+                })
+            },
+            _ => panic!("invalid rank"),
+        }
+        // ADC sampling time config
+        self.set_channel_sample_time(channel, sample_time);
     }
 
-    /// adc_inserted_channel_config
+    /// configure ADC inserted channel
     pub fn configure_inserted_channel<CHANNEL>(
         &mut self,
-        _channel: &CHANNEL,
         rank: u8,
+        _channel: &CHANNEL,
         sample_time: config::SampleTime,
     ) where
         CHANNEL: Channel<ADC0, ID = u8>,
@@ -509,8 +557,10 @@ impl Adc<ADC0, Disabled> {
 
         let channel = CHANNEL::channel();
 
-        //Set the channel in the right sequence field
         unsafe {
+            // the channel number is written to these bits to select a channel
+            // as the nth conversion in the inserted channel group
+            //
             // Inserted channels are converted starting from (4 - IL[1:0] - 1),
             // if IL[1:0] length is less than 4.
             match rank {
@@ -520,27 +570,9 @@ impl Adc<ADC0, Disabled> {
                 3 => self.rb.isq.modify(|_, w| w.isq0().bits(channel)),
                 _ => panic!("invalid rank"),
             }
-
-            match channel {
-                10..=17 => {
-                    let mask = !(0x111 << (3 * (channel - 10)));
-                    self.rb.sampt0.modify(|r, w| {
-                        let cleared = r.bits() & mask;
-                        let masked = (sample_time as u8 as u32) << (3 * (channel - 10));
-                        w.bits(cleared | masked)
-                    });
-                }
-                0..=9 => {
-                    let mask = !(0x111 << (3 * channel));
-                    self.rb.sampt1.modify(|r, w| {
-                        let cleared = r.bits() & mask;
-                        let masked = (sample_time as u8 as u32) << (3 * channel);
-                        w.bits(cleared | masked)
-                    });
-                }
-                _ => unreachable!("invalid channel"),
-            }
         }
+        // ADC sampling time config
+        self.set_channel_sample_time(channel, sample_time);
     }
 
     fn reset(&mut self, _rcu: &mut Rcu) {
@@ -586,6 +618,7 @@ impl Adc<ADC0, Enabled> {
         }
     }
 
+    /// Resets the end-of-conversion flag, and optionally end-of-inserted-conversion flag
     pub fn clear_end_of_conversion_flag(&self) {
         self.rb.stat.modify(|_, w| {
             if self.config.inserted_channel.is_some() {
@@ -616,16 +649,16 @@ impl Adc<ADC0, Enabled> {
         self.rb.rdata.read().rdata().bits()
     }
 
-    pub fn read0(&self) -> u16 {
+    pub fn read_idata0(&self) -> u16 {
         self.rb.idata0.read().idatan().bits()
     }
-    pub fn read1(&self) -> u16 {
+    pub fn read_idata1(&self) -> u16 {
         self.rb.idata1.read().idatan().bits()
     }
-    pub fn read2(&self) -> u16 {
+    pub fn read_idata2(&self) -> u16 {
         self.rb.idata2.read().idatan().bits()
     }
-    pub fn read3(&self) -> u16 {
+    pub fn read_idata3(&self) -> u16 {
         self.rb.idata3.read().idatan().bits()
     }
 }

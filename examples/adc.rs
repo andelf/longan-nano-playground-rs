@@ -5,27 +5,26 @@
 use panic_halt as _;
 
 use core::fmt::Write;
-use longan_nano_playground::ByteMutWriter;
 
-use embedded_graphics::fonts::{Font8x16, Text};
+use embedded_hal::digital::v2::ToggleableOutputPin;
+use nb::block;
+use riscv_rt::entry;
+
+use embedded_graphics::fonts::{Font6x12, Font8x16, Text};
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::Rectangle;
 use embedded_graphics::{primitive_style, text_style};
+
 // gd32vf103_pac
+use gd32vf103xx_hal::delay::McycleDelay;
 use gd32vf103xx_hal::pac;
 use gd32vf103xx_hal::prelude::*;
 use gd32vf103xx_hal::timer;
-use longan_nano_playground::stdout;
-use longan_nano_playground::{lcd, lcd_pins, sprintln};
-use riscv_rt::entry;
-#[macro_use(block)]
-extern crate nb;
-
-use embedded_hal::digital::v2::ToggleableOutputPin;
-
-use gd32vf103xx_hal::delay::McycleDelay;
+// board support
 use longan_nano_playground::adc::{self, Adc, Temperature, Vrefint};
+use longan_nano_playground::{lcd, lcd_pins, sprintln};
+use longan_nano_playground::{stdout, ByteMutWriter};
 
 #[entry]
 fn main() -> ! {
@@ -70,10 +69,10 @@ fn main() -> ! {
     let vrefint = Vrefint::new().enable(&mut adc);
     let temp = Temperature::new().enable(&mut adc);
 
-    adc.configure_inserted_channel(&temp, 0, adc::config::SampleTime::Point_239_5);
-    adc.configure_inserted_channel(&vrefint, 1, adc::config::SampleTime::Point_239_5);
-    adc.configure_inserted_channel(&a0, 2, adc::config::SampleTime::Point_239_5);
-    adc.configure_inserted_channel(&b0, 3, adc::config::SampleTime::Point_239_5);
+    adc.configure_inserted_channel(0, &temp, adc::config::SampleTime::Point_239_5);
+    adc.configure_inserted_channel(1, &vrefint, adc::config::SampleTime::Point_239_5);
+    adc.configure_inserted_channel(2, &a0, adc::config::SampleTime::Point_239_5);
+    adc.configure_inserted_channel(3, &b0, adc::config::SampleTime::Point_239_5);
 
     let mut adc = adc.enable();
     adc.calibrate();
@@ -115,8 +114,8 @@ fn main() -> ! {
     cls!();
 
     let style = text_style!(
-        font = Font8x16, // Font6x8,
-        text_color = Rgb565::WHITE,
+        font = Font6x12, // Font8x16, //
+        text_color = Rgb565::GREEN,
         background_color = Rgb565::BLACK
     );
 
@@ -148,9 +147,9 @@ fn main() -> ! {
 
         // {(V25 – Vtemperature) / Avg_Slope} + 25
         // read???
-        let raw_temp = adc.read3();
+        let raw_temp = adc.read_idata3();
         let temperature = (1.45 - (raw_temp as f32 * 3.3 / 4096.0)) * 1000.0 / 4.1 + 25.0;
-        let vref_value = adc.read2() as f32 * 3.3 / 4096.0;
+        let vref_value = adc.read_idata2() as f32 * 3.3 / 4096.0;
         //let a0_val = adc.read2();
 
         /*
@@ -162,10 +161,10 @@ fn main() -> ! {
 
         writeln!(buf, "temp: {:.2}C", temperature).unwrap();
         writeln!(buf, "Vref: {:.4}V", vref_value).unwrap();
-        writeln!(buf, "data0: {}", adc.read3()).unwrap();
-        writeln!(buf, "data1: {}", adc.read2()).unwrap();
-        writeln!(buf, "data2: {}", adc.read1()).unwrap();
-        // writeln!(buf, "data3: {}", adc.read0()).unwrap();
+        writeln!(buf, "data0: {}", adc.read_idata0()).unwrap();
+        writeln!(buf, "data1: {}", adc.read_idata1()).unwrap();
+        writeln!(buf, "data2: {}", adc.read_idata2()).unwrap();
+        writeln!(buf, "data3: {}", adc.read_idata3()).unwrap();
 
         //write!(buf, "a0: 0x{:04x}", a0_val).unwrap();
         Text::new(buf.as_str(), Point::new(0, 0))

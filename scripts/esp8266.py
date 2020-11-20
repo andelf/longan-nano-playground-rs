@@ -57,7 +57,6 @@ AT+CWMODE=1
 3=ap+station
 
 
-
 AT+CWLAP
 <
 <  +CWLAP:(3,"cjyy",-39,"90:12:34:d4:e4:aa",6)
@@ -124,6 +123,9 @@ cmd = 'AT+CIPSTATUS'  # 获得连接id=0
 
 # scan ap
 # cmd = 'AT+CWLAP'
+
+# Http get
+# cmd = 'AT+HTTPCLIENT=2,0,"http://httpbin.org/ip","httpbin.org","/ip",1'
 
 ser.write(cmd.encode() + b"\r\n")
 print("=> {}".format(cmd))

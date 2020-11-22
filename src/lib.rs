@@ -1,5 +1,12 @@
 #![no_std]
 
+pub use gd32vf103xx_hal as hal;
+pub use hal::pac;
+
+pub mod adc;
+pub mod lcd;
+pub mod stdout;
+
 use core::fmt;
 use core::str;
 
@@ -37,6 +44,17 @@ impl<'a> ByteMutWriter<'a> {
 
     pub fn full(&self) -> bool {
         self.capacity() == self.cursor
+    }
+
+    pub fn write_byte(&mut self, b: u8) {
+        if !self.full() {
+            self.buf[self.cursor] = b;
+            self.cursor += 1;
+        }
+    }
+
+    pub fn write_char(&mut self, c: char) {
+        self.write_byte(c as u8);
     }
 }
 

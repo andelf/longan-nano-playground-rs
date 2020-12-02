@@ -15,11 +15,12 @@ use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::Rectangle;
 use embedded_graphics::{primitive_style, text_style};
+use longan_nano_playground::{lcd, lcd_pins};
 // gd32vf103_pac
 use gd32vf103xx_hal::pac;
 use gd32vf103xx_hal::prelude::*;
 use gd32vf103xx_hal::timer;
-use longan_nano_playground::{lcd, lcd_pins};
+
 use riscv_rt::entry;
 #[macro_use(block)]
 extern crate nb;
@@ -163,11 +164,11 @@ fn EXTI_LINE9_5() {
             // press
             if BTN.as_ref().unwrap().is_high().unwrap() {
                 COUNT += 1;
-                RED.as_mut().unwrap().set_low(); // ON
+                RED.as_mut().unwrap().set_low().unwrap(); // ON
             } else {
                 // release
                 COUNT += 10;
-                RED.as_mut().unwrap().set_high();
+                RED.as_mut().unwrap().set_high().unwrap();
             }
         }
     }

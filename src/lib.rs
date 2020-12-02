@@ -6,6 +6,7 @@ pub use hal::pac;
 pub mod adc;
 pub mod lcd;
 pub mod stdout;
+pub mod esp_at;
 
 use core::fmt;
 use core::str;

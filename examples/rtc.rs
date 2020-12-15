@@ -101,7 +101,7 @@ fn main() -> ! {
         let device_id = gd32vf103xx_hal::signature::device_id();
         for i in 0..3 {
             buf.clear();
-            write!(&mut buf, "dev id[{}]: {:x}", i, device_id[i]).unwrap();
+            write!(&mut buf, "dev id[{}]: {:08x}", i, device_id[i]).unwrap();
             Text::new(buf.as_str(), Point::new(0, 16 * (2 + i as i32)))
                 .into_styled(style)
                 .draw(&mut lcd)

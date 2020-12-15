@@ -21,5 +21,6 @@ panic-halt = "0.2.0"
 embedded-graphics = "0.6"
 embedded-sdmmc = "0.3"
 ssd1306 = "0.4"
+embedded-drivers = { path = "../embedded-drivers" }
 # embedded-picofont = "0.2.1"
 # profont = "0.4.0"
